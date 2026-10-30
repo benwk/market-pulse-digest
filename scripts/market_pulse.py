@@ -55,6 +55,32 @@ def should_run(schedule: str, now_london: dt.datetime) -> bool:
     return True
 
 
+PLACEHOLDERS = ("[Client name]", "[Sector name", "[Competitor A]", "[Competitor B]", "[Competitor C]", "[topics to watch")
+
+
+def explain_http_error(url: str, code: int, body: str) -> str:
+    """Turn the most common API errors into plain-English next steps."""
+    lowered = body.lower()
+    if "api.openai.com" in url:
+        if code == 401:
+            return "OpenAI rejected the API key. Create a new key at platform.openai.com/api-keys and update the OPENAI_API_KEY secret."
+        if code == 429:
+            return ("OpenAI says the account has no credit or hit a rate limit. Add credit at "
+                    "platform.openai.com/settings/organization/billing, wait a minute, then run again.")
+        if "model" in lowered and code in (400, 403, 404):
+            return ("Your OpenAI account can't use this model. Set the OPENAI_MODEL variable to a model "
+                    "listed at platform.openai.com/docs/models and run again.")
+    if "api.resend.com" in url:
+        if code == 403 and any(s in lowered for s in ("resend.dev", "testing emails", "verify a domain")):
+            return ("Resend's test sender can only email the address you signed up to Resend with. "
+                    "Set EMAIL_TO to that address, or verify your own domain in Resend and set EMAIL_FROM.")
+        if code in (401, 403):
+            return "Resend rejected the API key. Create a new key at resend.com/api-keys and update the RESEND_API_KEY secret."
+        if code == 422:
+            return "Resend could not accept the email addresses. Check EMAIL_TO (and EMAIL_FROM, if you set it)."
+    return ""
+
+
 def post_json(url: str, payload: dict, api_key: str, timeout: int) -> dict:
     request = urllib.request.Request(
         url,
@@ -71,6 +97,9 @@ def post_json(url: str, payload: dict, api_key: str, timeout: int) -> dict:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         body = error.read().decode("utf-8", "replace")
+        hint = explain_http_error(url, error.code, body)
+        if hint:
+            print(f"::error::{hint}")
         fail(f"{url} returned HTTP {error.code}: {body[:1000]}")
     except urllib.error.URLError as error:
         fail(f"Could not reach {url}: {error.reason}")
@@ -162,8 +191,13 @@ def main() -> None:
     prompt_file = ROOT / os.environ.get("PROMPT_FILE", "prompts/market-pulse.md")
     if not prompt_file.exists():
         fail(f"Prompt file not found: {prompt_file}")
+    rules = prompt_file.read_text(encoding="utf-8")
+    left = [p for p in PLACEHOLDERS if p in rules]
+    if left:
+        fail(f"The prompt file still has placeholders to fill in: {', '.join(left)}. "
+             "Replace them with your own sectors, clients and competitors, then run again.")
     today = now_london.date()
-    prompt = build_prompt(prompt_file.read_text(encoding="utf-8"), today)
+    prompt = build_prompt(rules, today)
 
     print(f"Writing the digest with {model} and web search. This can take a few minutes.")
     digest = write_digest(openai_key, model, prompt)

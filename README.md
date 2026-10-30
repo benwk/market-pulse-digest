@@ -1,76 +1,24 @@
 # Market Pulse digest
 
-A weekly news digest for agency planners. Every Monday at 08:00 (London time) it searches the web for the past week's news in the sectors you choose, writes a short source-linked summary for each item, and emails it to you.
+A weekly news digest for agency planners. Every Monday at 08:00 (London time) it searches the web for the past week's news in the sectors you choose, writes a short source-linked summary of each item with why it matters to your client, and emails it to you.
 
-It runs on GitHub Actions, uses the OpenAI API (with web search) to write the digest and [Resend](https://resend.com) to send the email. You don't need to write any code: everything you change lives in one text file, `prompts/market-pulse.md`.
+It runs on GitHub Actions, uses the OpenAI API (with web search) to write the digest, and [Resend](https://resend.com) to send the email. You don't write any code: what the digest covers lives in one text file, `prompts/market-pulse.md`, and Codex can set everything up and tune it with you.
 
-## How it works
+## Start here
 
-| Part | Where it lives |
-|---|---|
-| **Trigger:** every Monday, 08:00 London time | `.github/workflows/market-pulse.yml` |
-| **Data:** web search over the past 7 days | OpenAI's web search tool |
-| **Judgement:** your sectors, clients, competitors and rules | `prompts/market-pulse.md` |
-| **Action:** an HTML email to you | Resend |
+1. **Make your own private copy.** Click **Use this template → Create a new repository**, give it a name, and choose **Private**. Keep it private: it will name your clients, and every digest appears in its run history.
+2. **Open it in Codex.** In the Codex app, start a new chat and ask: *"Clone github.com/YOUR-NAME/YOUR-REPO to my computer and open it."* Approve the commands Codex asks to run.
+3. **Type `@setup`** and follow along. Codex checks your tools, connects to GitHub, helps you add your keys, writes your prompt with you, runs a preview and sends your first email. Allow 20 to 30 minutes.
 
-## Set it up (about 20 minutes)
+Before you start, have these ready (or create them during setup):
 
-### 1. Make your own private copy
+- a GitHub account
+- an **OpenAI API** account with a payment method and some credit, at [platform.openai.com](https://platform.openai.com). This is billed separately from ChatGPT Plus.
+- a **Resend** account, at [resend.com](https://resend.com), created **with the email address where you want to receive the digest**
 
-Click **Use this template → Create a new repository**, and choose **Private**.
+## Keep improving it
 
-Keep it private: your prompt names your clients and competitors.
-
-### 2. Get an OpenAI API key
-
-1. Sign in at [platform.openai.com](https://platform.openai.com).
-2. Add a payment method under **Billing**. The API is billed separately from ChatGPT Plus.
-3. Create a key under **API keys** and copy it.
-
-### 3. Get a Resend API key
-
-1. Sign up at [resend.com](https://resend.com) with the email address that should receive the digest.
-2. Create a key under **API Keys** and copy it.
-
-Without a verified domain, Resend's test sender (`onboarding@resend.dev`) can only send to the address you signed up with. To send to colleagues, verify a domain in Resend and set `EMAIL_FROM` (step 4).
-
-### 4. Add the keys and settings to your repository
-
-In your copy on GitHub: **Settings → Secrets and variables → Actions**.
-
-Under **Secrets**, add:
-
-| Name | Value |
-|---|---|
-| `OPENAI_API_KEY` | your OpenAI key |
-| `RESEND_API_KEY` | your Resend key |
-
-Under **Variables**, add:
-
-| Name | Value |
-|---|---|
-| `EMAIL_TO` | where to send the digest; separate several addresses with commas |
-| `EMAIL_FROM` | optional; e.g. `Market Pulse <digest@yourdomain.com>` once your domain is verified |
-| `OPENAI_MODEL` | optional; defaults to `gpt-5` |
-
-### 5. Write your prompt
-
-Open `prompts/market-pulse.md` on GitHub, click the pencil icon, and replace everything in square brackets with your own sectors, clients and competitors. Commit the change.
-
-The date and the "use web search" instruction are added automatically, so the prompt only needs your sectors, rules and format.
-
-### 6. Run it once
-
-Go to **Actions → Market Pulse → Run workflow**.
-
-- Leave **Send the email** ticked to receive it now.
-- Untick it to preview the digest on the run's summary page without sending anything.
-
-A run usually takes a few minutes. After that it runs by itself every Monday.
-
-## Tuning it
-
-The digest is only as good as the rules in `prompts/market-pulse.md`. If it misses something, or includes things you don't need, change the rules and run it again. That is how you tune an agent.
+Open the repository in Codex and type `@tune`, then say what you want: *"more about new product launches"*, *"add Oatly as a competitor"*, *"the healthcare section is too thin"*, *"send it on Tuesdays at 9 instead"*. Codex changes the prompt, runs a preview, shows you the difference, and saves it when you're happy.
 
 Things to check on each digest:
 
@@ -79,19 +27,39 @@ Things to check on each digest:
 - **Relevant:** you would have wanted to know.
 - **Honest:** a quiet week says so, rather than padding.
 
+## How it works
+
+| Part | Where it lives |
+|---|---|
+| **Trigger:** every Monday, 08:00 London time | `.github/workflows/market-pulse.yml` |
+| **Data:** web search over the past 7 days | OpenAI's web search tool |
+| **Judgement:** your sectors, clients, competitors and rules | `prompts/market-pulse.md` |
+| **Action:** an email to you | Resend |
+| **Instructions for Codex** | `AGENTS.md`, `.agents/skills/` |
+
 ## Good to know
 
+- **Who it can email.** Without a verified domain, Resend's test sender (`onboarding@resend.dev`) can only send to the address you signed up to Resend with. To send to colleagues, verify a domain you own in Resend and set the `EMAIL_FROM` variable.
 - **Timing.** GitHub schedules run in UTC, so the workflow has two Monday triggers (07:00 and 08:00 UTC) and only the one that is 08:00 in London goes ahead. GitHub can start scheduled runs a few minutes late.
-- **Costs.** One run a week uses a small amount of OpenAI API credit (model use plus web searches). Resend's free plan and GitHub's free Actions minutes cover a weekly email.
-- **Copies.** Each run's digest is attached to the run as a download, and shown on its summary page.
+- **Costs.** Each run uses a small amount of OpenAI credit (the model plus its web searches); see platform.openai.com/usage. Resend's free plan and GitHub's free Actions minutes cover a weekly email.
+- **What it can't see.** It searches the open web. It doesn't read paywalled sites, social media comments or your company's internal data.
 - **Company policy.** Check your company's rules before sending automated emails into a work inbox or using client names with external AI services.
 
-## Run it on your own computer (optional)
+## Setting it up without Codex
+
+1. Make a private copy (step 1 above).
+2. In your copy: **Settings → Secrets and variables → Actions**.
+   - **Secrets:** `OPENAI_API_KEY`, `RESEND_API_KEY`
+   - **Variables:** `EMAIL_TO` (required); `EMAIL_FROM` and `OPENAI_MODEL` (optional; the model defaults to `gpt-5`)
+3. Edit `prompts/market-pulse.md` on GitHub (pencil icon) and replace the square-bracket placeholders in the first section with your sectors, clients and competitors.
+4. **Actions → Market Pulse → Run workflow.** Untick *Send the email* to preview the digest on the run's summary page; leave it ticked to send it.
+
+### Running it on your own computer (optional)
 
 ```bash
 pip install -r requirements.txt
 export OPENAI_API_KEY=... RESEND_API_KEY=... EMAIL_TO=you@example.com
-python scripts/market_pulse.py
+SEND_EMAIL=false python scripts/market_pulse.py
 ```
 
-Set `SEND_EMAIL=false` to write the digest to `out/` without sending it.
+`SEND_EMAIL=false` writes the digest to `out/` without sending it.
